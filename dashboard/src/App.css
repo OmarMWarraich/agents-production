@@ -478,3 +478,220 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Rich result cards ───────────────────────────────── */
+
+.message-bubble.has-cards {
+  max-width: 100%;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0;
+}
+
+.message-bubble.has-cards .message-role {
+  display: none;
+}
+
+.message-bubble.has-cards .message-content {
+  padding: 0.7rem 1rem;
+  background: #f8fcfa;
+  border: 1px solid #d6e4de;
+  border-radius: 16px;
+  margin-bottom: 0.8rem;
+}
+
+.result-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.result-cards.reddit-grid {
+  grid-template-columns: 1fr;
+  max-width: 640px;
+}
+
+/* Movie cards */
+.movie-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d6e4de;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.movie-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(15, 120, 104, 0.16);
+}
+
+.movie-card-img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.movie-card-body {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.movie-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.movie-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.movie-year {
+  font-size: 0.78rem;
+  color: #557067;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.genre-badge {
+  display: inline-block;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #e3f4ef;
+  color: #0f7868;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: fit-content;
+}
+
+.star-rating {
+  color: #d4a017;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.star-rating span {
+  margin-left: 0.35rem;
+  color: #7a9e8f;
+  font-size: 0.75rem;
+}
+
+.movie-meta {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #557067;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-description {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #385148;
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* Reddit cards */
+.reddit-card {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #d6e4de;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.reddit-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.reddit-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reddit-sub {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #e05a00;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reddit-upvotes {
+  font-size: 0.76rem;
+  color: #557067;
+  font-weight: 700;
+}
+
+.reddit-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1a2e27;
+  text-decoration: none;
+  line-height: 1.45;
+}
+
+.reddit-title:hover {
+  color: #0f7868;
+}
+
+.reddit-author {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #7a9e8f;
+}
+
+/* Joke card */
+.joke-card {
+  margin-top: 0.6rem;
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fef9c3, #fde68a);
+  text-align: center;
+  border: 1px solid #fbbf24;
+}
+
+.joke-icon {
+  font-size: 2.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.joke-text {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #78350f;
+  line-height: 1.55;
+}
+
+@media (max-width: 860px) {
+  .result-cards {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .result-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -6,6 +6,149 @@ type ChatBubble = ChatMessage & {
   variant?: 'default' | 'error'
 }
 
+type MovieResult = {
+  title: string
+  year: string
+  genre: string
+  director: string
+  actors: string
+  rating: string
+  description: string
+}
+
+type RedditPost = {
+  title: string
+  link: string
+  subreddit: string
+  author: string
+  upvotes: number
+}
+
+type ParsedToolData =
+  | { type: 'movies'; data: MovieResult[] }
+  | { type: 'reddit'; data: RedditPost[] }
+  | { type: 'joke'; data: string }
+  | null
+
+const parseToolData = (toolCalls: ChatToolTrace[]): ParsedToolData => {
+  if (!toolCalls.length) return null
+  const call = toolCalls[0]
+  try {
+    if (call.name === 'movieSearch') {
+      return { type: 'movies', data: JSON.parse(call.response) as MovieResult[] }
+    }
+    if (call.name === 'reddit') {
+      return { type: 'reddit', data: JSON.parse(call.response) as RedditPost[] }
+    }
+    if (call.name === 'dad_joke') {
+      return { type: 'joke', data: call.response }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+const MovieCard = ({ movie }: { movie: MovieResult }) => {
+  const seed = encodeURIComponent((movie.title ?? 'movie').replace(/\s+/g, '-'))
+  const rating = parseFloat(movie.rating ?? '0')
+  const stars = Math.min(5, Math.round(rating / 2))
+  return (
+    <article className="movie-card">
+      <img
+        src={`https://picsum.photos/seed/${seed}/280/420`}
+        alt={movie.title}
+        className="movie-card-img"
+        loading="lazy"
+      />
+      <div className="movie-card-body">
+        <div className="movie-card-header">
+          <h3>{movie.title}</h3>
+          {movie.year && <span className="movie-year">{movie.year}</span>}
+        </div>
+        {movie.genre && (
+          <span className="genre-badge">{movie.genre.split(',')[0].trim()}</span>
+        )}
+        {rating > 0 && (
+          <div className="star-rating">
+            {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
+            <span>{movie.rating}/10</span>
+          </div>
+        )}
+        {movie.director && <p className="movie-meta">🎬 {movie.director}</p>}
+        {movie.actors && (
+          <p className="movie-meta">
+            🎭 {movie.actors.split(',').slice(0, 2).join(', ')}
+          </p>
+        )}
+        {movie.description && (
+          <p className="movie-description">
+            {movie.description.length > 180
+              ? `${movie.description.slice(0, 180)}…`
+              : movie.description}
+          </p>
+        )}
+      </div>
+    </article>
+  )
+}
+
+const RedditCard = ({ post }: { post: RedditPost }) => (
+  <article className="reddit-card">
+    <div className="reddit-card-meta">
+      <span className="reddit-sub">{post.subreddit}</span>
+      <span className="reddit-upvotes">▲ {post.upvotes.toLocaleString()}</span>
+    </div>
+    <a
+      href={post.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="reddit-title"
+    >
+      {post.title}
+    </a>
+    <p className="reddit-author">u/{post.author}</p>
+  </article>
+)
+
+const JokeCard = ({ joke }: { joke: string }) => (
+  <div className="joke-card">
+    <div className="joke-icon">😂</div>
+    <p className="joke-text">{joke}</p>
+  </div>
+)
+
+const ToolCards = ({ toolCalls }: { toolCalls: ChatToolTrace[] }) => {
+  const parsed = parseToolData(toolCalls)
+  if (!parsed) return null
+
+  if (parsed.type === 'movies') {
+    return (
+      <div className="result-cards">
+        {parsed.data.map((movie) => (
+          <MovieCard key={movie.title} movie={movie} />
+        ))}
+      </div>
+    )
+  }
+
+  if (parsed.type === 'reddit') {
+    return (
+      <div className="result-cards reddit-grid">
+        {parsed.data.slice(0, 8).map((post) => (
+          <RedditCard key={post.link} post={post} />
+        ))}
+      </div>
+    )
+  }
+
+  if (parsed.type === 'joke') {
+    return <JokeCard joke={parsed.data} />
+  }
+
+  return null
+}
+
 const STARTER_PROMPTS = [
   'Tell me a dad joke.',
   'What is something interesting from Reddit right now?',
@@ -146,28 +289,37 @@ const ChatPage = () => {
         </div>
 
         <div className="message-list" aria-live="polite">
-          {messages.map((message, index) => (
-            <article
-              key={`${message.role}-${index}`}
-              className={`message-bubble ${message.role} ${message.variant || ''}`}
-            >
-              <p className="message-role">{message.role}</p>
-              <p className="message-content">{message.content}</p>
-
-              {message.toolCalls && message.toolCalls.length > 0 ? (
-                <details className="tool-trace">
-                  <summary>Tool activity</summary>
-                  {message.toolCalls.map((toolCall) => (
-                    <div key={`${toolCall.name}-${toolCall.arguments}`}>
-                      <strong>{toolCall.name}</strong>
-                      <pre>{toolCall.arguments}</pre>
-                      <pre>{toolCall.response}</pre>
-                    </div>
-                  ))}
-                </details>
-              ) : null}
-            </article>
-          ))}
+          {messages.map((message, index) => {
+            const toolData = message.toolCalls ? parseToolData(message.toolCalls) : null
+            const hasCards = toolData !== null
+            return (
+              <article
+                key={`${message.role}-${index}`}
+                className={`message-bubble ${message.role} ${message.variant || ''} ${hasCards ? 'has-cards' : ''}`}
+              >
+                <p className="message-role">{message.role}</p>
+                {message.content && (
+                  <p className="message-content">{message.content}</p>
+                )}
+                {message.toolCalls && message.toolCalls.length > 0 && (
+                  hasCards
+                    ? <ToolCards toolCalls={message.toolCalls} />
+                    : (
+                      <details className="tool-trace">
+                        <summary>Tool activity</summary>
+                        {message.toolCalls.map((toolCall) => (
+                          <div key={`${toolCall.name}-${toolCall.arguments}`}>
+                            <strong>{toolCall.name}</strong>
+                            <pre>{toolCall.arguments}</pre>
+                            <pre>{toolCall.response}</pre>
+                          </div>
+                        ))}
+                      </details>
+                    )
+                )}
+              </article>
+            )
+          })}
 
           {isSending ? (
             <article className="message-bubble assistant pending">

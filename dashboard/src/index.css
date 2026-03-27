@@ -39,3 +39,9 @@ h3 {
 #root {
   width: 100%;
 }
+
+button,
+textarea,
+select {
+  font: inherit;
+}

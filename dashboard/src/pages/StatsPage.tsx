@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Results } from '../types'
 import ExperimentGraph from '../components/ExperimentGraph'
+import { readErrorMessage, resolveApiUrl } from '../api'
 
 type WindowSize = 10 | 25 | -1
 
@@ -27,11 +28,11 @@ const StatsPage = () => {
       setError(null)
 
       try {
-        const response = await fetch('/api/stats')
+        const response = await fetch(resolveApiUrl('/api/stats'))
 
         if (!response.ok) {
-          const payload = (await response.json()) as { error?: string }
-          throw new Error(payload.error || 'Failed to load stats')
+          const message = await readErrorMessage(response, 'Failed to load stats')
+          throw new Error(message)
         }
 
         const payload = (await response.json()) as Results

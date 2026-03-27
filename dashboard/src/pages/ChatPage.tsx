@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage, ChatToolTrace, ChatTurnResult } from '../types'
+import { readErrorMessage, resolveApiUrl } from '../api'
 
 type ChatBubble = ChatMessage & {
   toolCalls?: ChatToolTrace[]
@@ -200,7 +201,7 @@ const ChatPage = () => {
     setIsSending(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(resolveApiUrl('/api/chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,8 +210,8 @@ const ChatPage = () => {
       })
 
       if (!response.ok) {
-        const payload = (await response.json()) as { error?: string }
-        throw new Error(payload.error || 'Chat request failed')
+        const message = await readErrorMessage(response, 'Chat request failed')
+        throw new Error(message)
       }
 
       const payload = (await response.json()) as ChatTurnResult

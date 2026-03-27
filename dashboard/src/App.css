@@ -269,6 +269,14 @@
   font-size: 0.9rem;
 }
 
+.debug-api-url {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  color: #7a948b;
+  overflow-wrap: anywhere;
+}
+
 .composer-footer button {
   border-radius: 12px;
   border: 1px solid #0f7868;

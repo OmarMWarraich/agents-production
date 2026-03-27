@@ -176,6 +176,7 @@ const ChatPage = () => {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const chatApiUrl = resolveApiUrl('/api/chat')
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -348,7 +349,12 @@ const ChatPage = () => {
             rows={3}
           />
           <div className="composer-footer">
-            <p>{error ? `Last error: ${error}` : 'Tool traces appear under assistant replies.'}</p>
+            <p>
+              {error
+                ? `Last error: ${error}`
+                : 'Tool traces appear under assistant replies.'}
+              <span className="debug-api-url">Debug endpoint: {chatApiUrl}</span>
+            </p>
             <button type="submit" disabled={isSending || input.trim().length === 0}>
               Send
             </button>

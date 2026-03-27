@@ -269,6 +269,14 @@
   font-size: 0.9rem;
 }
 
+.debug-api-url {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  color: #7a948b;
+  overflow-wrap: anywhere;
+}
+
 .composer-footer button {
   border-radius: 12px;
   border: 1px solid #0f7868;
@@ -512,6 +520,10 @@ select {
   max-width: 640px;
 }
 
+.result-cards.characters-grid {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
 /* Movie cards */
 .movie-card {
   border-radius: 16px;
@@ -605,6 +617,67 @@ select {
   color: #385148;
   line-height: 1.55;
   flex: 1;
+}
+
+/* Character cards */
+.character-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d6e4de;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.character-card-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.character-card-body {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.character-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.character-card-header h3 {
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.character-card-header span {
+  color: #557067;
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.character-meta {
+  margin: 0;
+  color: #557067;
+  font-size: 0.78rem;
+}
+
+.character-traits {
+  margin: 0;
+  color: #0f7868;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.character-description {
+  margin: 0;
+  color: #385148;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 /* Reddit cards */

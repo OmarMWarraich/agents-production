@@ -26,9 +26,18 @@ type RedditPost = {
   summary?: string
 }
 
+type CharacterResult = {
+  name: string
+  movie: string
+  portrayedBy: string
+  traits: string
+  description: string
+}
+
 type ParsedToolData =
   | { type: 'movies'; data: MovieResult[] }
   | { type: 'reddit'; data: RedditPost[] }
+  | { type: 'characters'; data: CharacterResult[] }
   | { type: 'joke'; data: string }
   | null
 
@@ -42,6 +51,12 @@ const parseToolData = (toolCalls: ChatToolTrace[]): ParsedToolData => {
     if (call.name === 'reddit') {
       return { type: 'reddit', data: JSON.parse(call.response) as RedditPost[] }
     }
+    if (call.name === 'characters') {
+      return {
+        type: 'characters',
+        data: JSON.parse(call.response) as CharacterResult[],
+      }
+    }
     if (call.name === 'dad_joke') {
       return { type: 'joke', data: call.response }
     }
@@ -51,43 +66,70 @@ const parseToolData = (toolCalls: ChatToolTrace[]): ParsedToolData => {
   return null
 }
 
+const textValue = (value: unknown) => {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' || typeof item === 'number' ? String(item) : ''))
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  return ''
+}
+
 const MovieCard = ({ movie }: { movie: MovieResult }) => {
-  const seed = encodeURIComponent((movie.title ?? 'movie').replace(/\s+/g, '-'))
-  const rating = parseFloat(movie.rating ?? '0')
+  const title = textValue(movie.title) || 'Movie'
+  const year = textValue(movie.year)
+  const genre = textValue(movie.genre)
+  const director = textValue(movie.director)
+  const actors = textValue(movie.actors)
+  const description = textValue(movie.description)
+  const ratingLabel = textValue(movie.rating)
+  const rating = Number.parseFloat(ratingLabel || '0')
+  const seed = encodeURIComponent(title.replace(/\s+/g, '-'))
   const stars = Math.min(5, Math.round(rating / 2))
+
   return (
     <article className="movie-card">
       <img
         src={`https://picsum.photos/seed/${seed}/280/420`}
-        alt={movie.title}
+        alt={title}
         className="movie-card-img"
         loading="lazy"
       />
       <div className="movie-card-body">
         <div className="movie-card-header">
-          <h3>{movie.title}</h3>
-          {movie.year && <span className="movie-year">{movie.year}</span>}
+          <h3>{title}</h3>
+          {year && <span className="movie-year">{year}</span>}
         </div>
-        {movie.genre && (
-          <span className="genre-badge">{movie.genre.split(',')[0].trim()}</span>
+        {genre && (
+          <span className="genre-badge">{genre.split(',')[0].trim()}</span>
         )}
         {rating > 0 && (
           <div className="star-rating">
             {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
-            <span>{movie.rating}/10</span>
+            <span>{ratingLabel}/10</span>
           </div>
         )}
-        {movie.director && <p className="movie-meta">🎬 {movie.director}</p>}
-        {movie.actors && (
+        {director && <p className="movie-meta">🎬 {director}</p>}
+        {actors && (
           <p className="movie-meta">
-            🎭 {movie.actors.split(',').slice(0, 2).join(', ')}
+            🎭 {actors.split(',').slice(0, 2).join(', ')}
           </p>
         )}
-        {movie.description && (
+        {description && (
           <p className="movie-description">
-            {movie.description.length > 180
-              ? `${movie.description.slice(0, 180)}…`
-              : movie.description}
+            {description.length > 180
+              ? `${description.slice(0, 180)}…`
+              : description}
           </p>
         )}
       </div>
@@ -99,7 +141,9 @@ const RedditCard = ({ post }: { post: RedditPost }) => (
   <article className="reddit-card">
     <div className="reddit-card-meta">
       <span className="reddit-sub">{post.subreddit}</span>
-      <span className="reddit-upvotes">▲ {post.upvotes.toLocaleString()}</span>
+      <span className="reddit-upvotes">
+        ▲ {Number(post.upvotes || 0).toLocaleString()}
+      </span>
     </div>
     <a
       href={post.link}
@@ -113,6 +157,36 @@ const RedditCard = ({ post }: { post: RedditPost }) => (
     <p className="reddit-author">u/{post.author}</p>
   </article>
 )
+
+const CharacterCard = ({ character }: { character: CharacterResult }) => {
+  const seed = encodeURIComponent(
+    `${character.name || 'character'}-${character.movie || 'movie'}`.replace(/\s+/g, '-')
+  )
+
+  return (
+    <article className="character-card">
+      <img
+        src={`https://picsum.photos/seed/${seed}/600/360`}
+        alt={character.name}
+        className="character-card-img"
+        loading="lazy"
+      />
+      <div className="character-card-body">
+        <div className="character-card-header">
+          <h3>{character.name}</h3>
+          {character.movie && <span>{character.movie}</span>}
+        </div>
+        {character.portrayedBy && (
+          <p className="character-meta">Played by {character.portrayedBy}</p>
+        )}
+        {character.traits && <p className="character-traits">{character.traits}</p>}
+        {character.description && (
+          <p className="character-description">{character.description}</p>
+        )}
+      </div>
+    </article>
+  )
+}
 
 const JokeCard = ({ joke }: { joke: string }) => (
   <div className="joke-card">
@@ -140,6 +214,16 @@ const ToolCards = ({ toolCalls }: { toolCalls: ChatToolTrace[] }) => {
       <div className="result-cards reddit-grid">
         {parsed.data.slice(0, 8).map((post) => (
           <RedditCard key={post.link} post={post} />
+        ))}
+      </div>
+    )
+  }
+
+  if (parsed.type === 'characters') {
+    return (
+      <div className="result-cards characters-grid">
+        {parsed.data.map((character) => (
+          <CharacterCard key={`${character.name}-${character.movie}`} character={character} />
         ))}
       </div>
     )
@@ -176,6 +260,7 @@ const ChatPage = () => {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const chatApiUrl = resolveApiUrl('/api/chat')
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -348,7 +433,12 @@ const ChatPage = () => {
             rows={3}
           />
           <div className="composer-footer">
-            <p>{error ? `Last error: ${error}` : 'Tool traces appear under assistant replies.'}</p>
+            <p>
+              {error
+                ? `Last error: ${error}`
+                : 'Tool traces appear under assistant replies.'}
+              <span className="debug-api-url">Debug endpoint: {chatApiUrl}</span>
+            </p>
             <button type="submit" disabled={isSending || input.trim().length === 0}>
               Send
             </button>

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "npx tsx index.ts",
+    "server": "npx tsx src/server.ts",
     "eval": "npx tsx evals/run.ts $1",
     "ingest": "npx tsx src/rag/ingest.ts"
   },

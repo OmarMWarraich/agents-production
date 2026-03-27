@@ -40,3 +40,20 @@ export interface Experiment {
 export interface Results {
   experiments: Experiment[]
 }
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface ChatToolTrace {
+  name: string
+  arguments: string
+  response: string
+}
+
+export interface ChatTurnResult {
+  message: ChatMessage
+  toolCalls: ChatToolTrace[]
+  requiresApproval: boolean
+}

@@ -10,14 +10,16 @@ export const runLLM = async ({
   tools = [],
   temperature = 0.1,
   systemPrompt,
+  summary,
 }: {
   messages: AIMessage[]
   tools?: any[]
   temperature?: number
   systemPrompt?: string
+  summary?: string
 }) => {
   const formattedTools = tools.map(zodFunction)
-  const summary = await getSummary()
+  const conversationSummary = summary ?? (await getSummary())
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -27,7 +29,7 @@ export const runLLM = async ({
         role: 'system',
         content: `${
           systemPrompt || defaultSystemPrompt
-        }. Conversation summary so far: ${summary}`,
+        }. Conversation summary so far: ${conversationSummary}`,
       },
       ...messages,
     ],
@@ -70,6 +72,7 @@ export const summarizeMessages = async (messages: AIMessage[]) => {
       'Summarize the key points of the conversation in a concise way that would be helpful as context for future interactions. Make it like a play by play of the conversation.',
     messages,
     temperature: 0.3,
+    summary: '',
   })
 
   return response.content || ''

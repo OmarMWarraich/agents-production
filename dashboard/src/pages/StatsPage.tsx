@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Results } from '../../../types'
+import type { Results } from '../types'
 import ExperimentGraph from '../components/ExperimentGraph'
 
 type WindowSize = 10 | 25 | -1

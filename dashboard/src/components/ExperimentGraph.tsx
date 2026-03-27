@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
-import type { Experiment } from '../../../types'
+import type { Experiment } from '../types'
 
 interface ExperimentGraphProps {
   experiment: Experiment

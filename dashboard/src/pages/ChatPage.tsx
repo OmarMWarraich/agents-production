@@ -298,7 +298,7 @@ const ChatPage = () => {
                 className={`message-bubble ${message.role} ${message.variant || ''} ${hasCards ? 'has-cards' : ''}`}
               >
                 <p className="message-role">{message.role}</p>
-                {message.content && (
+                {message.content && !hasCards && (
                   <p className="message-content">{message.content}</p>
                 )}
                 {message.toolCalls && message.toolCalls.length > 0 && (

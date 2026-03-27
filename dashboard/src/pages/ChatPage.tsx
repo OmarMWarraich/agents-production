@@ -26,9 +26,18 @@ type RedditPost = {
   summary?: string
 }
 
+type CharacterResult = {
+  name: string
+  movie: string
+  portrayedBy: string
+  traits: string
+  description: string
+}
+
 type ParsedToolData =
   | { type: 'movies'; data: MovieResult[] }
   | { type: 'reddit'; data: RedditPost[] }
+  | { type: 'characters'; data: CharacterResult[] }
   | { type: 'joke'; data: string }
   | null
 
@@ -41,6 +50,12 @@ const parseToolData = (toolCalls: ChatToolTrace[]): ParsedToolData => {
     }
     if (call.name === 'reddit') {
       return { type: 'reddit', data: JSON.parse(call.response) as RedditPost[] }
+    }
+    if (call.name === 'characters') {
+      return {
+        type: 'characters',
+        data: JSON.parse(call.response) as CharacterResult[],
+      }
     }
     if (call.name === 'dad_joke') {
       return { type: 'joke', data: call.response }
@@ -114,6 +129,36 @@ const RedditCard = ({ post }: { post: RedditPost }) => (
   </article>
 )
 
+const CharacterCard = ({ character }: { character: CharacterResult }) => {
+  const seed = encodeURIComponent(
+    `${character.name || 'character'}-${character.movie || 'movie'}`.replace(/\s+/g, '-')
+  )
+
+  return (
+    <article className="character-card">
+      <img
+        src={`https://picsum.photos/seed/${seed}/600/360`}
+        alt={character.name}
+        className="character-card-img"
+        loading="lazy"
+      />
+      <div className="character-card-body">
+        <div className="character-card-header">
+          <h3>{character.name}</h3>
+          {character.movie && <span>{character.movie}</span>}
+        </div>
+        {character.portrayedBy && (
+          <p className="character-meta">Played by {character.portrayedBy}</p>
+        )}
+        {character.traits && <p className="character-traits">{character.traits}</p>}
+        {character.description && (
+          <p className="character-description">{character.description}</p>
+        )}
+      </div>
+    </article>
+  )
+}
+
 const JokeCard = ({ joke }: { joke: string }) => (
   <div className="joke-card">
     <div className="joke-icon">😂</div>
@@ -140,6 +185,16 @@ const ToolCards = ({ toolCalls }: { toolCalls: ChatToolTrace[] }) => {
       <div className="result-cards reddit-grid">
         {parsed.data.slice(0, 8).map((post) => (
           <RedditCard key={post.link} post={post} />
+        ))}
+      </div>
+    )
+  }
+
+  if (parsed.type === 'characters') {
+    return (
+      <div className="result-cards characters-grid">
+        {parsed.data.map((character) => (
+          <CharacterCard key={`${character.name}-${character.movie}`} character={character} />
         ))}
       </div>
     )

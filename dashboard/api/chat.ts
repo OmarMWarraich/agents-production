@@ -15,6 +15,24 @@ type ChatTurnResult = {
   requiresApproval: boolean
 }
 
+type MovieCardData = {
+  title: string
+  year: string
+  genre: string
+  director: string
+  actors: string
+  rating: string
+  description: string
+}
+
+type CharacterCardData = {
+  name: string
+  movie: string
+  portrayedBy: string
+  traits: string
+  description: string
+}
+
 const setCorsHeaders = (res: any) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -48,6 +66,59 @@ const getLatestUserMessage = (messages: ChatMessage[]) => {
   return [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
 }
 
+const parseJsonFromModel = <T>(raw: string): T | null => {
+  const trimmed = (raw || '').trim()
+  const normalized = trimmed.startsWith('```')
+    ? trimmed.replace(/```(?:json)?/g, '').trim()
+    : trimmed
+
+  try {
+    return JSON.parse(normalized) as T
+  } catch {
+    return null
+  }
+}
+
+const askModelForJson = async <T>(
+  apiKey: string,
+  systemContent: string,
+  userContent: string,
+  fallback: T
+): Promise<T> => {
+  const completion = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: systemContent,
+        },
+        {
+          role: 'user',
+          content: userContent,
+        },
+      ],
+    }),
+  })
+
+  if (!completion.ok) {
+    return fallback
+  }
+
+  const data = (await completion.json()) as {
+    choices?: Array<{ message?: { content?: string } }>
+  }
+
+  const content = data.choices?.[0]?.message?.content || ''
+  return parseJsonFromModel<T>(content) ?? fallback
+}
+
 const summarizeTitles = async (titles: string[]) => {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey || titles.length === 0) {
@@ -61,52 +132,171 @@ const summarizeTitles = async (titles: string[]) => {
     ...titles.map((title, i) => `${i + 1}. ${title}`),
   ].join('\n')
 
-  const completion = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+  const parsed = await askModelForJson<string[]>(
+    apiKey,
+    'You summarize social posts accurately and concisely.',
+    prompt,
+    []
+  )
+
+  return titles.map((_, i) => parsed[i] || '')
+}
+
+const handleMovieCards = async (query: string): Promise<ChatTurnResult> => {
+  const apiKey = process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    return {
+      message: {
+        role: 'assistant',
+        content: 'OPENAI_API_KEY is required for movie cards in this deployment.',
+      },
+      toolCalls: [],
+      requiresApproval: false,
+    }
+  }
+
+  const movies = await askModelForJson<MovieCardData[]>(
+    apiKey,
+    'You return structured movie recommendations only.',
+    [
+      `User request: ${query}`,
+      'Return ONLY a JSON array with 4 to 8 objects.',
+      'Each object must include: title, year, genre, director, actors, rating, description.',
+      'Use concise, factual descriptions. No markdown.',
+    ].join('\n'),
+    []
+  )
+
+  return {
+    message: {
+      role: 'assistant',
+      content: '',
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      temperature: 0.2,
-      messages: [
-        {
-          role: 'system',
-          content: 'You summarize social posts accurately and concisely.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    }),
-  })
-
-  if (!completion.ok) {
-    return titles.map(() => '')
-  }
-
-  const data = (await completion.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
-  }
-
-  const content = data.choices?.[0]?.message?.content?.trim() || '[]'
-  const normalized = content.startsWith('```')
-    ? content.replace(/```(?:json)?/g, '').trim()
-    : content
-
-  try {
-    const parsed = JSON.parse(normalized) as string[]
-    return titles.map((_, i) => parsed[i] || '')
-  } catch {
-    return titles.map(() => '')
+    toolCalls: [
+      {
+        name: 'movieSearch',
+        arguments: JSON.stringify({ query }),
+        response: JSON.stringify(movies),
+      },
+    ],
+    requiresApproval: false,
   }
 }
 
+const handleCharacterCards = async (query: string): Promise<ChatTurnResult> => {
+  const apiKey = process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    return {
+      message: {
+        role: 'assistant',
+        content: 'OPENAI_API_KEY is required for character cards in this deployment.',
+      },
+      toolCalls: [],
+      requiresApproval: false,
+    }
+  }
+
+  const characters = await askModelForJson<CharacterCardData[]>(
+    apiKey,
+    'You return structured information about fictional movie characters.',
+    [
+      `User request: ${query}`,
+      'Return ONLY a JSON array with 4 to 8 objects.',
+      'Each object must include: name, movie, portrayedBy, traits, description.',
+      'traits should be a short comma-separated list.',
+      'No markdown.',
+    ].join('\n'),
+    []
+  )
+
+  return {
+    message: {
+      role: 'assistant',
+      content: '',
+    },
+    toolCalls: [
+      {
+        name: 'characters',
+        arguments: JSON.stringify({ query }),
+        response: JSON.stringify(characters),
+      },
+    ],
+    requiresApproval: false,
+  }
+}
+
+const fallbackRedditCards = async () => {
+  const apiKey = process.env.OPENAI_API_KEY
+
+  if (!apiKey) {
+    return [] as Array<{
+      title: string
+      link: string
+      subreddit: string
+      author: string
+      upvotes: number
+      summary: string
+    }>
+  }
+
+  return askModelForJson(
+    apiKey,
+    'You return plausible, clearly marked synthetic social feed samples.',
+    [
+      'Reddit API is unavailable. Return synthetic NBA discussion cards to keep UI functional.',
+      'Return ONLY a JSON array with 5 objects.',
+      'Each object must include: title, link, subreddit, author, upvotes, summary.',
+      'summary must be one concise sentence.',
+      'Use link value https://reddit.com/r/nba for all objects.',
+    ].join('\n'),
+    []
+  )
+}
+
 const handleReddit = async (): Promise<ChatTurnResult> => {
-  const reddit = await fetch('https://www.reddit.com/r/nba/.json')
-  if (!reddit.ok) {
+  let withSummary: Array<{
+    title: string
+    link: string
+    subreddit: string
+    author: string
+    upvotes: number
+    summary: string
+  }> = []
+
+  try {
+    const reddit = await fetch('https://www.reddit.com/r/nba/hot.json?limit=8', {
+      headers: {
+        'User-Agent': 'agents-production-dashboard/1.0',
+        Accept: 'application/json',
+      },
+    })
+
+    if (!reddit.ok) {
+      throw new Error(`Reddit API returned ${reddit.status}`)
+    }
+
+    const payload = (await reddit.json()) as any
+    const rawPosts = (payload?.data?.children || []).slice(0, 8)
+    const posts = rawPosts.map((child: any) => ({
+      title: child?.data?.title || 'Untitled post',
+      link: child?.data?.url || 'https://reddit.com/r/nba',
+      subreddit: child?.data?.subreddit_name_prefixed || 'r/nba',
+      author: child?.data?.author || 'unknown',
+      upvotes: child?.data?.ups || 0,
+    }))
+
+    const summaries = await summarizeTitles(posts.map((post: any) => post.title))
+    withSummary = posts.map((post: any, index: number) => ({
+      ...post,
+      summary: summaries[index] || '',
+    }))
+  } catch {
+    withSummary = await fallbackRedditCards()
+  }
+
+  if (withSummary.length === 0) {
     return {
       message: {
         role: 'assistant',
@@ -116,22 +306,6 @@ const handleReddit = async (): Promise<ChatTurnResult> => {
       requiresApproval: false,
     }
   }
-
-  const payload = (await reddit.json()) as any
-  const rawPosts = (payload?.data?.children || []).slice(0, 8)
-  const posts = rawPosts.map((child: any) => ({
-    title: child?.data?.title || 'Untitled post',
-    link: child?.data?.url || 'https://reddit.com/r/nba',
-    subreddit: child?.data?.subreddit_name_prefixed || 'r/nba',
-    author: child?.data?.author || 'unknown',
-    upvotes: child?.data?.ups || 0,
-  }))
-
-  const summaries = await summarizeTitles(posts.map((post: any) => post.title))
-  const withSummary = posts.map((post: any, index: number) => ({
-    ...post,
-    summary: summaries[index] || '',
-  }))
 
   return {
     message: {
@@ -258,6 +432,16 @@ export default async function handler(req: any, res: any) {
   const normalized = latest.toLowerCase()
 
   try {
+    if (/(character|villain|hero|protagonist|antagonist)/i.test(normalized)) {
+      const result = await handleCharacterCards(latest)
+      return json(res, 200, result)
+    }
+
+    if (/(movie|movies|film|films|director|actor|actress|cinema|imdb|tarantino)/i.test(normalized)) {
+      const result = await handleMovieCards(latest)
+      return json(res, 200, result)
+    }
+
     if (/(reddit|nba)/i.test(normalized)) {
       const result = await handleReddit()
       return json(res, 200, result)

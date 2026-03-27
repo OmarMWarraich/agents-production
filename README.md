@@ -1,4 +1,11 @@
-[![Frontend Masters](https://static.frontendmasters.com/assets/brand/logos/full.png)](https://frontendmasters.com/courses/production-ai/)
+Production-style AI agent sandbox with tool calling, evals, and a results dashboard.
+The CLI agent uses OpenAI to answer prompts, call tools, and manage short-term memory.
+Built-in tools include Reddit lookup, dad jokes, image generation, and movie search.
+Movie search is powered by a RAG flow backed by Upstash Vector.
+Evaluation scripts test tool-selection behavior and score agent performance over time.
+Eval outputs are stored locally in results.json for inspection and comparison.
+A React dashboard visualizes experiment score trends across evaluation sets.
+The repo is structured to show the path from prototype agent logic to measurable production workflows.
 
 # Prototype to Production: Advanced AI Apps
 

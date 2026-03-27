@@ -15,6 +15,25 @@ const normalizeApiBaseUrl = (value: string) => {
   return cleaned
 }
 
+const shouldPreferSameOrigin = (baseUrl: string) => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    const configured = new URL(baseUrl)
+    const current = window.location
+    const isCrossOrigin = configured.origin !== current.origin
+    const bothVercelHosts =
+      configured.hostname.endsWith('.vercel.app') &&
+      current.hostname.endsWith('.vercel.app')
+
+    return isCrossOrigin && bothVercelHosts
+  } catch {
+    return false
+  }
+}
+
 export const resolveApiUrl = (path: string) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
@@ -31,6 +50,10 @@ export const resolveApiUrl = (path: string) => {
   const normalizedBase = normalizedBaseCandidate.endsWith('/')
     ? normalizedBaseCandidate
     : `${normalizedBaseCandidate}/`
+
+  if (shouldPreferSameOrigin(normalizedBase)) {
+    return normalizedPath
+  }
 
   try {
     return new URL(normalizedPath.replace(/^\//, ''), normalizedBase).toString()

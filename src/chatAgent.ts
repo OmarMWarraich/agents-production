@@ -14,6 +14,36 @@ const getLatestUserMessage = (messages: ChatMessage[]) => {
   return [...messages].reverse().find((message) => message.role === 'user')?.content ?? ''
 }
 
+const enrichRedditPosts = async (rawResponse: string): Promise<string> => {
+  try {
+    const posts = JSON.parse(rawResponse) as { title: string; link: string; subreddit: string; author: string; upvotes: number }[]
+    const titles = posts.map((p, i) => `${i + 1}. ${p.title}`).join('\n')
+
+    const summaryMsg = await runLLM({
+      messages: [
+        {
+          role: 'user',
+          content: `For each Reddit post below, write a single concise sentence describing what the post/discussion is about. Return ONLY a JSON array of strings in the same order, no extra text.\n\n${titles}`,
+        },
+      ],
+      tools: [],
+      summary: '',
+      temperature: 0.2,
+      systemPrompt: 'You are a helpful assistant that summarises Reddit post titles.',
+    })
+
+    const raw = (summaryMsg.content ?? '').trim()
+    const jsonStr = raw.startsWith('```') ? raw.replace(/```(?:json)?/g, '').trim() : raw
+    const summaries = JSON.parse(jsonStr) as string[]
+
+    return JSON.stringify(
+      posts.map((p, i) => ({ ...p, summary: summaries[i] ?? '' }))
+    )
+  } catch {
+    return rawResponse
+  }
+}
+
 export const runChatTurn = async ({
   messages,
   tools,
@@ -76,7 +106,13 @@ export const runChatTurn = async ({
       }
     }
 
-    const toolResponse = await runTool(toolCall, latestUserMessage)
+    const rawToolResponse = await runTool(toolCall, latestUserMessage)
+
+    let toolResponse = rawToolResponse
+
+    if (toolCall.function.name === 'reddit') {
+      toolResponse = await enrichRedditPosts(rawToolResponse)
+    }
 
     toolCalls.push({
       name: toolCall.function.name,

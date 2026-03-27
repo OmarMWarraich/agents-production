@@ -22,6 +22,7 @@ type RedditPost = {
   subreddit: string
   author: string
   upvotes: number
+  summary?: string
 }
 
 type ParsedToolData =
@@ -107,6 +108,7 @@ const RedditCard = ({ post }: { post: RedditPost }) => (
     >
       {post.title}
     </a>
+    {post.summary && <p className="reddit-summary">{post.summary}</p>}
     <p className="reddit-author">u/{post.author}</p>
   </article>
 )

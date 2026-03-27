@@ -661,6 +661,13 @@ select {
   color: #7a9e8f;
 }
 
+.reddit-summary {
+  margin: 0;
+  font-size: 0.83rem;
+  color: #385148;
+  line-height: 1.5;
+}
+
 /* Joke card */
 .joke-card {
   margin-top: 0.6rem;

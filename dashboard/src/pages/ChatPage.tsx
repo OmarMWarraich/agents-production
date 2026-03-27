@@ -66,43 +66,70 @@ const parseToolData = (toolCalls: ChatToolTrace[]): ParsedToolData => {
   return null
 }
 
+const textValue = (value: unknown) => {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' || typeof item === 'number' ? String(item) : ''))
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  return ''
+}
+
 const MovieCard = ({ movie }: { movie: MovieResult }) => {
-  const seed = encodeURIComponent((movie.title ?? 'movie').replace(/\s+/g, '-'))
-  const rating = parseFloat(movie.rating ?? '0')
+  const title = textValue(movie.title) || 'Movie'
+  const year = textValue(movie.year)
+  const genre = textValue(movie.genre)
+  const director = textValue(movie.director)
+  const actors = textValue(movie.actors)
+  const description = textValue(movie.description)
+  const ratingLabel = textValue(movie.rating)
+  const rating = Number.parseFloat(ratingLabel || '0')
+  const seed = encodeURIComponent(title.replace(/\s+/g, '-'))
   const stars = Math.min(5, Math.round(rating / 2))
+
   return (
     <article className="movie-card">
       <img
         src={`https://picsum.photos/seed/${seed}/280/420`}
-        alt={movie.title}
+        alt={title}
         className="movie-card-img"
         loading="lazy"
       />
       <div className="movie-card-body">
         <div className="movie-card-header">
-          <h3>{movie.title}</h3>
-          {movie.year && <span className="movie-year">{movie.year}</span>}
+          <h3>{title}</h3>
+          {year && <span className="movie-year">{year}</span>}
         </div>
-        {movie.genre && (
-          <span className="genre-badge">{movie.genre.split(',')[0].trim()}</span>
+        {genre && (
+          <span className="genre-badge">{genre.split(',')[0].trim()}</span>
         )}
         {rating > 0 && (
           <div className="star-rating">
             {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
-            <span>{movie.rating}/10</span>
+            <span>{ratingLabel}/10</span>
           </div>
         )}
-        {movie.director && <p className="movie-meta">🎬 {movie.director}</p>}
-        {movie.actors && (
+        {director && <p className="movie-meta">🎬 {director}</p>}
+        {actors && (
           <p className="movie-meta">
-            🎭 {movie.actors.split(',').slice(0, 2).join(', ')}
+            🎭 {actors.split(',').slice(0, 2).join(', ')}
           </p>
         )}
-        {movie.description && (
+        {description && (
           <p className="movie-description">
-            {movie.description.length > 180
-              ? `${movie.description.slice(0, 180)}…`
-              : movie.description}
+            {description.length > 180
+              ? `${description.slice(0, 180)}…`
+              : description}
           </p>
         )}
       </div>
@@ -114,7 +141,9 @@ const RedditCard = ({ post }: { post: RedditPost }) => (
   <article className="reddit-card">
     <div className="reddit-card-meta">
       <span className="reddit-sub">{post.subreddit}</span>
-      <span className="reddit-upvotes">▲ {post.upvotes.toLocaleString()}</span>
+      <span className="reddit-upvotes">
+        ▲ {Number(post.upvotes || 0).toLocaleString()}
+      </span>
     </div>
     <a
       href={post.link}

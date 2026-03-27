@@ -1,21 +1,43 @@
 const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || ''
 
+const normalizeApiBaseUrl = (value: string) => {
+  const cleaned = value.trim().replace(/^['"]|['"]$/g, '')
+
+  if (!cleaned) {
+    return ''
+  }
+
+  // Accept bare hostnames like "my-app.vercel.app" by inferring HTTPS.
+  if (!/^https?:\/\//i.test(cleaned)) {
+    return `https://${cleaned}`
+  }
+
+  return cleaned
+}
+
 export const resolveApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
   if (!rawApiBaseUrl) {
-    return path
+    return normalizedPath
   }
 
-  if (!/^https?:\/\//i.test(rawApiBaseUrl)) {
-    throw new Error(
-      'Invalid VITE_API_BASE_URL. Use a full URL like https://your-backend.example.com'
-    )
+  const normalizedBaseCandidate = normalizeApiBaseUrl(rawApiBaseUrl)
+
+  if (!normalizedBaseCandidate) {
+    return normalizedPath
   }
 
-  const normalizedBase = rawApiBaseUrl.endsWith('/')
-    ? rawApiBaseUrl
-    : `${rawApiBaseUrl}/`
+  const normalizedBase = normalizedBaseCandidate.endsWith('/')
+    ? normalizedBaseCandidate
+    : `${normalizedBaseCandidate}/`
 
-  return new URL(path.replace(/^\//, ''), normalizedBase).toString()
+  try {
+    return new URL(normalizedPath.replace(/^\//, ''), normalizedBase).toString()
+  } catch {
+    // If URL parsing fails in production, gracefully fall back to same-origin API routes.
+    return normalizedPath
+  }
 }
 
 export const readErrorMessage = async (

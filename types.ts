@@ -21,7 +21,7 @@ export interface Run {
     tool_calls?: any[]
     refusal: null
   }
-  expected: string
+  expected: unknown
   scores: Score[]
   createdAt: string
 }

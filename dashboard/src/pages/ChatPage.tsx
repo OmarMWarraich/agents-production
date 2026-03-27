@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChatMessage, ChatToolTrace, ChatTurnResult } from '../../../types'
+import type { ChatMessage, ChatToolTrace, ChatTurnResult } from '../types'
 
 type ChatBubble = ChatMessage & {
   toolCalls?: ChatToolTrace[]
